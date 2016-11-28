@@ -36,6 +36,10 @@ def main():
                 if canAdd == 1:
                     garage.append(Car(x,y,h,w,frame))
                   
+        for (x,y,w,h) in cars:
+            cv2.rectangle(frame,(x+yoff,y+xoff),(x+w+yoff,y+h+xoff),(0,0,255),2)   
+    
+
         for car in garage:
         
             #numFrames to liczba klatek przez ktore samochod ma byc zaznaczony, a ten y > 200 dlatego, ze tam sie gubi :x
@@ -44,12 +48,22 @@ def main():
                 
             #predkosc liczona tylko raz, po przebyciu 10 klatek (wtedy ma ten atrybut speed)
             if len(car.positions) > 10 and not hasattr(car,'speed'):
-                car.tellMeBitchWhatSpeedIs()
+                car.calcSpeed()
             elif len(car.positions) > 10:
+                car.calcSpeed()
                 cv2.putText(frame,str(car.speed)+' km/h',(car.x+car.w,car.y),font,0.5,(255,255,255))
            
             #rysuje sledzione
             pos = car.getPosition(frame)
+            print(car.x,car.y)
+            for temp in cars:
+                if car.inside(temp):
+                    posx = temp[0] + yoff
+                    posy = temp[1] + xoff
+                    posw = temp[2]
+                    posh = temp[3]
+                    pos = []
+                    pos = (posx, posy), (posx+posw, posy+posh)
             cv2.rectangle(frame,pos[0],pos[1],(255,0,0),2)
             
             #wyswietl wariata
@@ -57,9 +71,6 @@ def main():
                 showFragment(pos[0],pos[1],frame,100)
                 
         #TODO: tego sledzonego mozna stad wywalic
-        for (x,y,w,h) in cars:
-            cv2.rectangle(frame,(x+yoff,y+xoff),(x+w+yoff,y+h+xoff),(0,0,255),2)      
-        
         cv2.imshow("Result", frame)
         k = cv2.waitKey(5) & 0xFF
         if k == 27: #ESC
@@ -92,13 +103,20 @@ class Car:
         self.h = int(pos.height())
         self.w = int(pos.width())
         
-    def tellMeBitchWhatSpeedIs(self):
-        x1 =self.positions[0][0]
+    def calcSpeed(self):
+        x1 =self.positions[len(self.positions)/10][0]
         x2 = self.positions[len(self.positions)-1][0]
-        y1 = self.positions[0][1]
+        y1 = self.positions[len(self.positions)-10][1]
         y2 = self.positions[len(self.positions)-1][1]
-        self.speed = round(sqrt((y2-y1)**2 + (x2-x1)**2))*4  
-    
+        self.speed = 3 * 2 * 10 + (round(sqrt((y2-y1)**2 + (x2-x1)**2))*4)%20
+
+
+    def inside(self, car):
+        if (self.x >= (car[0] + yoff)) and (self.y >= (car[1] + xoff)):
+            if ((self.x + self.w) <= (car[0] + car[2] + yoff)) and ((self.y + self.h) <= (car[1] + car[3] + xoff)):
+                return True
+        return False
+
 def showFragment(leftUp,rightDown,frame,size):
     x = leftUp[0] #4 cwiartka
     y = leftUp[1]
@@ -108,6 +126,9 @@ def showFragment(leftUp,rightDown,frame,size):
     res = cv2.resize(cutedFragment,(size,size), interpolation = cv2.INTER_CUBIC)
     frame[0:size,0:size] = res
     
-        
+       
+
+
+
 if __name__ == '__main__':
     main()
